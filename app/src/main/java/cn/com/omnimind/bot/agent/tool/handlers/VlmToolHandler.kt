@@ -29,6 +29,16 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.contentOrNull
 import kotlinx.serialization.json.jsonPrimitive
 
+private const val SEND_ONCE_GUIDANCE =
+    "Message sending rule: send each requested message exactly ONCE. " +
+        "After tapping Send, the input field returns to its empty placeholder (e.g. \"Pesan\" / \"Message\") " +
+        "and a NEW bubble appears at the bottom of the chat with the current time; that means the message was sent. " +
+        "The chat may already contain older bubbles with identical text and earlier timestamps; those do NOT mean " +
+        "the new send failed, so never type and send the same text again because of them. " +
+        "Compare the bottom-most bubble's timestamp and the number of bubbles before and after tapping Send. " +
+        "Only send the same message more than once if the user explicitly asked for multiple copies. " +
+        "If unsure whether it was sent, stop and report instead of resending."
+
 class VlmToolHandler(context: Context) : ToolHandler {
     private val helper = SharedHelper(
         context = context.applicationContext,
@@ -103,6 +113,7 @@ class VlmToolHandler(context: Context) : ToolHandler {
                 request = OmniVlmPlugin.Request(
                     goal = goal,
                     runId = runId,
+                    stepSkillGuidance = SEND_ONCE_GUIDANCE,
                 ),
                 modelClient = HttpAgentLlmClient(
                     scope = CoroutineScope(currentCoroutineContext()),
