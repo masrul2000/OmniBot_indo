@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 env:
   JAVA_VERSION: '21'
@@ -88,3 +88,15 @@ jobs:
           name: omnibot-indo-debug-apk
           path: app/build/outputs/apk/**/*.apk
           if-no-files-found: error
+
+      - name: Publish APK as pre-release (direct download link)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          APK="$(find app/build/outputs/apk -name '*.apk' | head -1)"
+          cp "$APK" omnibot-indo-debug.apk
+          gh release delete debug-latest --cleanup-tag -y || true
+          gh release create debug-latest omnibot-indo-debug.apk \
+            --prerelease --target "$GITHUB_SHA" \
+            --title "Debug APK (latest)" \
+            --notes "Debug build from $GITHUB_REF_NAME @ ${GITHUB_SHA::7}"
