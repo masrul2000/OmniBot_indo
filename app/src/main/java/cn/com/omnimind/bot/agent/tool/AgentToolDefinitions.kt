@@ -568,7 +568,7 @@ object AgentToolDefinitions {
             put("toolType", "builtin")
             put(
                 "description",
-                "手机或 Android App 操作必须使用此工具：例如下单咖啡、购物、联系人、设置、导航、打开应用等。把用户完整目标放入 goal；不要用 terminal/browser 代替。若 OmniFlow 操作模块未启用，调用后会提示用户手动启用，不会执行手机操作。"
+                "手机或 Android App 操作必须使用此工具：例如下单咖啡、购物、联系人、设置、导航、打开应用等。把用户完整目标放入 goal；不要用 terminal/browser 代替。若 OmniFlow 操作模块未启用，调用后会提示用户手动启用，不会执行手机操作。发送消息（WhatsApp、短信等）时每条消息只调用一次、不要在同一轮重复调用；goal 中写明“只发送一次，发送后确认消息已出现在聊天中，不要重复发送”。除非用户明确要求发多条，否则一次任务只发一条。"
             )
             putJsonObject("parameters") {
                 put("type", "object")

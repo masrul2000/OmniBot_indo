@@ -12,6 +12,7 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 import 'package:ui/features/home/pages/command_overlay/state/chat_composer_state_machine.dart';
 import 'package:ui/services/model_vendor_catalog.dart';
 import 'package:ui/services/special_permission.dart';
+import 'package:ui/services/speech_input_service.dart';
 import 'package:ui/services/storage_service.dart';
 import 'package:ui/theme/theme_context.dart';
 import 'package:ui/widgets/provider_vendor_icon.dart';
@@ -510,6 +511,7 @@ abstract class _ChatInputAreaStateBase extends State<ChatInputArea>
 
   @override
   void dispose() {
+    unawaited(SpeechInputService.instance.cancel());
     unawaited(_compactActionsMenu?.dismiss());
     _compactActionsMenu = null;
     unawaited(_agentRunSettingsMenuHandle?.dismiss());

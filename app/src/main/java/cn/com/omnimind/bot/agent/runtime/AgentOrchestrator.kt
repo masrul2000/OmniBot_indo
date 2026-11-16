@@ -339,6 +339,10 @@ class AgentOrchestrator(
                 val parsedArgsMap = mutableMapOf<String, JsonObject>()
                 val validatedCalls = mutableListOf<AssistantToolCall>()
                 val writtenToolCallIds = linkedSetOf<String>()
+                // Identical side-effecting calls inside one assistant message are
+                // almost always a model glitch (e.g. sending the same WhatsApp
+                // message twice), so only the first one is executed.
+                val seenSideEffectCalls = mutableSetOf<Pair<String, JsonObject>>()
 
                 // Phase A — parse + validate all tool arguments synchronously.
                 // Any parse/validation failure aborts the current turn's tool execution
@@ -427,6 +431,29 @@ class AgentOrchestrator(
                             "Tool argument validation failed, so the remaining tool calls in this assistant message were not executed."
                         )
                         break@parsePhase
+                    }
+                    if (!descriptor.supportsParallel &&
+                        !seenSideEffectCalls.add(toolCall.function.name to parsedArgs)
+                    ) {
+                        val skipped = ToolExecutionResult.Error(
+                            toolCall.function.name,
+                            t(
+                                "已跳过：本轮已发起完全相同的调用，避免重复执行（例如重复发送消息）。如确实需要再次执行，请在下一轮单独发起。",
+                                "Skipped: an identical call was already made in this turn, to avoid repeating the action (e.g. sending a message twice). If it is really needed again, call it alone in the next turn."
+                            )
+                        )
+                        appendToolResultMessage(
+                            memory = memory,
+                            env = input.executionEnv,
+                            callback = callback,
+                            assistantMessage = assistantMessageForMemory,
+                            toolCall = toolCall,
+                            descriptor = descriptor,
+                            result = skipped
+                        )
+                        writtenToolCallIds += toolCall.id
+                        logInfo(tag, "round=$round skipped duplicate tool call ${toolCall.function.name}")
+                        continue@parsePhase
                     }
                     parsedArgsMap[toolCall.id] = parsedArgs
                     validatedCalls.add(toolCall)

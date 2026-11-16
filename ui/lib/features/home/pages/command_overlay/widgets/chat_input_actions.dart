@@ -1,6 +1,70 @@
 part of 'chat_input_area.dart';
 
 extension _ChatInputActionSupport on _ChatInputAreaStateBase {
+  static bool _listeningForSpeech = false;
+  static String _speechPrefix = '';
+  static String _speechSuffix = '';
+
+  /// Mic button: dictate Indonesian speech into the input field.
+  Widget _buildMicButton({required double iconSize}) {
+    return IconButton(
+      padding: EdgeInsets.zero,
+      iconSize: iconSize,
+      tooltip: _listeningForSpeech ? 'Berhenti' : 'Input suara',
+      icon: Icon(
+        _listeningForSpeech ? Icons.mic : Icons.mic_none,
+        size: iconSize,
+        color: _listeningForSpeech ? Colors.redAccent : null,
+      ),
+      onPressed: () => unawaited(_toggleSpeechInput()),
+    );
+  }
+
+  void _applySpeechText(String spoken) {
+    final text = '$_speechPrefix$spoken$_speechSuffix';
+    final caret = _speechPrefix.length + spoken.length;
+    widget.controller.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: caret),
+    );
+  }
+
+  Future<void> _toggleSpeechInput() async {
+    final service = SpeechInputService.instance;
+    if (_listeningForSpeech) {
+      await service.stop();
+      return;
+    }
+    final value = widget.controller.value;
+    final sel = value.selection;
+    final start = sel.isValid ? sel.start.clamp(0, value.text.length) : value.text.length;
+    final end = sel.isValid ? sel.end.clamp(0, value.text.length) : value.text.length;
+    var prefix = value.text.substring(0, start);
+    if (prefix.isNotEmpty && !prefix.endsWith(' ') && !prefix.endsWith('\n')) {
+      prefix = '$prefix ';
+    }
+    _speechPrefix = prefix;
+    _speechSuffix = value.text.substring(end);
+    try {
+      _listeningForSpeech = true;
+      setState(() {});
+      await service.start(
+        onPartial: _applySpeechText,
+        onResult: (text) {
+          if (text.isNotEmpty) _applySpeechText(text);
+        },
+        onError: (_) {},
+        onEnd: () {
+          _listeningForSpeech = false;
+          if (mounted) setState(() {});
+        },
+      );
+    } catch (_) {
+      _listeningForSpeech = false;
+      if (mounted) setState(() {});
+    }
+  }
+
   Widget _buildTerminalButton({required double iconSize}) {
     return IconButton(
       padding: EdgeInsets.zero,
